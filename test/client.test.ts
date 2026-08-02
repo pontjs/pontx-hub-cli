@@ -7,6 +7,8 @@ describe("HubClient", () => {
       Response.json({
         version: "v2",
         data: {
+          strategy: "hybrid-semantic",
+          semanticVersion: "pontx-multilingual-v1",
           query: "task",
           locale: "en",
           total: 1,

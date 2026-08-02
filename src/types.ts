@@ -1,5 +1,20 @@
 export type Locale = "zh" | "en";
 export type SearchKind = "api" | "endpoint" | "schema";
+export type SearchMatchField =
+  | "product"
+  | "title"
+  | "description"
+  | "path"
+  | "parameter"
+  | "request"
+  | "response"
+  | "schema"
+  | "property";
+
+export type SearchMatch = {
+  mode: "lexical" | "semantic" | "hybrid";
+  fields: SearchMatchField[];
+};
 
 type SearchResultBase = {
   id: string;
@@ -11,6 +26,7 @@ type SearchResultBase = {
   title: string;
   description: string;
   href: string;
+  match: SearchMatch;
 };
 
 export type ApiSearchResult = SearchResultBase & {
@@ -43,6 +59,8 @@ export type SearchResult =
   | SchemaSearchResult;
 
 export type SearchResponse = {
+  strategy: "hybrid-semantic";
+  semanticVersion: "pontx-multilingual-v1";
   query: string;
   locale: Locale;
   total: number;
@@ -108,7 +126,25 @@ export type HubOperationDetail = {
       in: "path" | "query" | "header" | "body";
       required?: boolean;
       type: string;
+      format?: string;
+      schemaName?: string;
+      enum?: unknown[];
       example?: unknown;
+    }>;
+    requestBody?: {
+      description?: { zh: string; en: string };
+      contentTypes?: string[];
+      schemaType?: string;
+      schemaName?: string;
+      properties?: string[];
+    };
+    responses: Array<{
+      status: string;
+      description?: { zh: string; en: string };
+      contentTypes?: string[];
+      schemaType?: string;
+      schemaName?: string;
+      properties?: string[];
     }>;
   };
 };

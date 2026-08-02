@@ -58,8 +58,8 @@ export function createProgram(): Command {
 
   program
     .command("search")
-    .description("Search API products, endpoints, and schemas")
-    .argument("<query>", "Search query")
+    .description("Semantically search API products, endpoints, inputs, outputs, and schemas")
+    .argument("<query>", "Natural-language search query")
     .addOption(
       new Option("--locale <locale>", "Result language")
         .choices(["zh", "en"])

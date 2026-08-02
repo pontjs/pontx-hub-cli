@@ -10,4 +10,4 @@ pnpm test
 pnpm build
 ```
 
-Keep `--json` output machine-readable and backward compatible. Do not log credentials, request headers, or environment-variable values.
+Keep `--json` output machine-readable and backward compatible, including the semantic strategy and match provenance returned by Hub. Do not log credentials, request headers, or environment-variable values.

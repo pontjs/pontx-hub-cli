@@ -4,6 +4,8 @@ import { formatSearch } from "../src/format.js";
 describe("formatSearch", () => {
   it("renders stable IDs and aggregate counts", () => {
     const output = formatSearch({
+      strategy: "hybrid-semantic",
+      semanticVersion: "pontx-multilingual-v1",
       query: "task",
       locale: "en",
       total: 1,
@@ -21,6 +23,7 @@ describe("formatSearch", () => {
           title: "Task",
           description: "Task model",
           href: "/en/apis/dida365/schemas/Task",
+          match: { mode: "hybrid", fields: ["schema", "property"] },
           schemaName: "Task",
           schemaType: "object",
           propertyCount: 16,
@@ -29,6 +32,7 @@ describe("formatSearch", () => {
       ]
     });
     expect(output).toContain("schema:dida365/Task");
-    expect(output).toContain("1 results · 0 APIs · 0 endpoints · 1 schemas");
+    expect(output).toContain("hybrid · schema, property");
+    expect(output).toContain("hybrid-semantic · 1 results · 0 APIs · 0 endpoints · 1 schemas");
   });
 });
