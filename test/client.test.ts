@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { HubClient } from "../src/client.js";
+import { HubClient, resolveOperation } from "../src/client.js";
 
 describe("HubClient", () => {
   it("calls the global v2 search endpoint with reusable filters", async () => {
@@ -29,6 +29,36 @@ describe("HubClient", () => {
       "https://hub.example/api/v2/search?q=task&locale=en&limit=10&offset=0&types=schema",
       { headers: { Accept: "application/json" } }
     );
+  });
+
+  it("resolves a controller and API name to the stable endpoint slug", () => {
+    expect(resolveOperation({
+      slug: "dida365",
+      operations: [
+        {
+          slug: "create-task",
+          operationId: "createTask",
+          tag: "task",
+          method: "POST",
+          path: "/task"
+        }
+      ]
+    }, "task", "createTask")).toMatchObject({ slug: "create-task" });
+  });
+
+  it("allows an API name without a controller for default collections", () => {
+    expect(resolveOperation({
+      slug: "frankfurter-v2",
+      operations: [
+        {
+          slug: "get-rates",
+          operationId: "getRates",
+          tag: "default",
+          method: "GET",
+          path: "/rates"
+        }
+      ]
+    }, "getRates")).toMatchObject({ slug: "get-rates" });
   });
 
   it("resolves stable schema result IDs", async () => {

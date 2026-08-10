@@ -14,7 +14,9 @@ node dist/cli.js search "create a todo"
 node dist/cli.js search "返回 dueDate 的接口" --locale zh --json
 node dist/cli.js search projectId --type schema --locale en --json
 node dist/cli.js show schema:dida365/TaskCreate
-node dist/cli.js preview frankfurter get-latest-rates -p base=USD
+node dist/cli.js frankfurter preview 'Exchange Rates' getLatestRates -p base=USD
+node dist/cli.js frankfurter call 'Exchange Rates' getLatestRates -p base=USD
+node dist/cli.js frankfurter-v2 call getRates -p base=USD
 ```
 
 Search returns API products, individual HTTP endpoints, and OpenAPI schemas from one hybrid semantic index. Ranking reuses product titles and descriptions plus endpoint parameters, request bodies, responses, referenced schemas, and nested fields. Every result has a stable ID that can be passed to `show`, along with `match.mode` and `match.fields` explaining why it matched.
@@ -22,6 +24,12 @@ Search returns API products, individual HTTP endpoints, and OpenAPI schemas from
 The standalone CLI also provides `list`, `preview`, `call`, `sdk`, and
 `skill install`. Mutation calls stop after the redacted preview unless the
 unchanged request is explicitly repeated with `--yes`.
+
+API calls follow the same hierarchy as Pontx projects:
+`pontx-hub <api-collection> call <controller> <api-name>`. Collections whose
+OpenAPI document has no meaningful controller omit that segment. The earlier
+`pontx-hub call <api-collection> <endpoint-slug>` form remains available for
+existing scripts.
 
 ## TypeScript client
 

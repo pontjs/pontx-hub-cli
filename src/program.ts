@@ -31,16 +31,81 @@ function addRequestOptions(command: Command): Command {
     .option("--body <json>", "JSON request body");
 }
 
+type CallOptions = RequestOptions & { yes?: boolean };
+
+async function previewEndpoint(
+  client: HubClient,
+  detail: Awaited<ReturnType<HubClient["endpoint"]>>,
+  options: RequestOptions
+): Promise<void> {
+  printJson(await client.preview(buildRequest(detail, options)));
+}
+
+async function callEndpoint(
+  client: HubClient,
+  detail: Awaited<ReturnType<HubClient["endpoint"]>>,
+  options: CallOptions
+): Promise<void> {
+  const request = buildRequest(detail, options);
+  const preview = await client.preview(request);
+  printJson({ preview });
+  if (preview.requiresConfirmation && !options.yes) {
+    throw new Error("Mutation stopped after preview. Review it and rerun unchanged with --yes.");
+  }
+  printJson(
+    await client.execute({
+      ...request,
+      ...(preview.confirmationToken
+        ? { confirmationToken: preview.confirmationToken }
+        : {})
+    })
+  );
+}
+
 export function createProgram(): Command {
-  const program = new Command()
+  const program = addRequestOptions(new Command()
     .name("pontx-hub")
     .description("Search and inspect APIs across Pontx Hub")
-    .version("0.1.0")
+    .version("0.1.1")
+    .usage("[options] <api-collection> <preview|call> [controller] <api-name>")
     .option(
       "--url <url>",
       "Pontx Hub base URL",
       process.env.PONTX_HUB_URL || "https://pontx-hub.vercel.app"
-    );
+    ))
+    .option("--yes", "Confirm the exact mutation shown by the preview")
+    .argument("[api-collection]", "API collection slug")
+    .argument("[action]", "preview or call")
+    .argument("[controller-or-api]", "Controller/tag, or API name when the collection has no controller")
+    .argument("[api-name]", "API name when a controller is present")
+    .action(async (
+      api: string | undefined,
+      action: string | undefined,
+      controllerOrEndpoint: string | undefined,
+      endpoint: string | undefined,
+      options: CallOptions
+    ) => {
+      if (!api && !action && !controllerOrEndpoint && !endpoint) {
+        program.outputHelp();
+        return;
+      }
+      if (!api || !controllerOrEndpoint || (action !== "preview" && action !== "call")) {
+        throw new Error(
+          "Use pontx-hub <api-collection> <preview|call> [controller] <api-name>"
+        );
+      }
+      const client = clientFor(program);
+      const detail = await client.resolveEndpoint(api, controllerOrEndpoint, endpoint);
+      if (action === "preview") await previewEndpoint(client, detail, options);
+      else await callEndpoint(client, detail, options);
+    })
+    .addHelpText("after", `
+Examples:
+  $ pontx-hub frankfurter call 'Exchange Rates' getLatestRates -p base=USD
+  $ pontx-hub frankfurter-v2 preview getRates -p base=USD
+
+Collections with controllers use: <collection> call <controller> <api-name>
+Collections without controllers use: <collection> call <api-name>`);
 
   program
     .command("list")
@@ -112,7 +177,7 @@ export function createProgram(): Command {
 
   addRequestOptions(
     program
-      .command("preview")
+      .command("preview", { hidden: true })
       .description("Build a redacted request preview without calling the provider")
       .argument("<api>", "API slug")
       .argument("<endpoint>", "Endpoint slug")
@@ -124,13 +189,13 @@ export function createProgram(): Command {
     ) => {
       const client = clientFor(program);
       const detail = await client.endpoint(api, endpoint);
-      printJson(await client.preview(buildRequest(detail, options)));
+      await previewEndpoint(client, detail, options);
     }
   );
 
   addRequestOptions(
     program
-      .command("call")
+      .command("call", { hidden: true })
       .description("Call an endpoint through the Hub proxy; mutations require --yes")
       .argument("<api>", "API slug")
       .argument("<endpoint>", "Endpoint slug")
@@ -143,20 +208,7 @@ export function createProgram(): Command {
     ) => {
       const client = clientFor(program);
       const detail = await client.endpoint(api, endpoint);
-      const request = buildRequest(detail, options);
-      const preview = await client.preview(request);
-      printJson({ preview });
-      if (preview.requiresConfirmation && !options.yes) {
-        throw new Error("Mutation stopped after preview. Review it and rerun unchanged with --yes.");
-      }
-      printJson(
-        await client.execute({
-          ...request,
-          ...(preview.confirmationToken
-            ? { confirmationToken: preview.confirmationToken }
-            : {})
-        })
-      );
+      await callEndpoint(client, detail, options);
     }
   );
 

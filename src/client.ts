@@ -1,8 +1,10 @@
 import type {
   HubEnvelope,
   HubErrorEnvelope,
+  HubApiDetail,
   HubApiSummary,
   HubOperationDetail,
+  HubOperationSummary,
   HubPreview,
   HubRequestInput,
   HubSkillBundle,
@@ -12,6 +14,38 @@ import type {
 
 export const DEFAULT_HUB_URL =
   process.env.PONTX_HUB_URL || "https://pontx-hub.vercel.app";
+
+function sameCommandName(left: string, right: string): boolean {
+  return left.localeCompare(right, undefined, { sensitivity: "accent" }) === 0;
+}
+
+export function resolveOperation(
+  api: HubApiDetail,
+  controllerOrEndpoint: string,
+  endpoint?: string
+): HubOperationSummary {
+  const operationName = endpoint ?? controllerOrEndpoint;
+  const candidates = api.operations.filter((operation) => {
+    const operationMatches =
+      sameCommandName(operation.operationId, operationName) ||
+      sameCommandName(operation.slug, operationName);
+    const controllerMatches =
+      endpoint === undefined || sameCommandName(operation.tag, controllerOrEndpoint);
+    return operationMatches && controllerMatches;
+  });
+
+  if (candidates.length === 1) return candidates[0]!;
+
+  const reference = endpoint
+    ? `${controllerOrEndpoint} ${endpoint}`
+    : controllerOrEndpoint;
+  if (candidates.length === 0) {
+    throw new Error(`Endpoint not found in ${api.slug}: ${reference}`);
+  }
+  throw new Error(
+    `Endpoint is ambiguous in ${api.slug}: ${reference}. Include the controller before the API name.`
+  );
+}
 
 export class HubRequestError extends Error {
   constructor(
@@ -79,8 +113,18 @@ export class HubClient {
     return this.request(`/api/v2/search?${parameters}`);
   }
 
-  api(apiSlug: string): Promise<unknown> {
-    return this.request(`/api/v1/specs/${encodeURIComponent(apiSlug)}`);
+  api(apiSlug: string): Promise<HubApiDetail> {
+    return this.request<HubApiDetail>(`/api/v1/specs/${encodeURIComponent(apiSlug)}`);
+  }
+
+  async resolveEndpoint(
+    apiSlug: string,
+    controllerOrEndpoint: string,
+    endpoint?: string
+  ): Promise<HubOperationDetail> {
+    const api = await this.api(apiSlug);
+    const operation = resolveOperation(api, controllerOrEndpoint, endpoint);
+    return this.endpoint(apiSlug, operation.slug);
   }
 
   endpoint(apiSlug: string, operationSlug: string): Promise<HubOperationDetail> {

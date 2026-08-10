@@ -22,6 +22,7 @@ const detail: HubOperationDetail = {
   operation: {
     slug: "get-task",
     operationId: "getTask",
+    tag: "task",
     method: "GET",
     path: "/tasks/{taskId}",
     parameters: [

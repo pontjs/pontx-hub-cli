@@ -105,6 +105,19 @@ export type HubApiSummary = {
   authTypes: string[];
 };
 
+export type HubOperationSummary = {
+  slug: string;
+  operationId: string;
+  tag: string;
+  method: string;
+  path: string;
+};
+
+export type HubApiDetail = {
+  slug: string;
+  operations: HubOperationSummary[];
+};
+
 export type HubOperationDetail = {
   api: HubApiSummary & {
     servers: Array<{ id: string; url: string }>;
@@ -119,6 +132,7 @@ export type HubOperationDetail = {
   operation: {
     slug: string;
     operationId: string;
+    tag: string;
     method: string;
     path: string;
     parameters: Array<{
