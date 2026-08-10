@@ -2,6 +2,8 @@
 
 Standalone CLI and TypeScript client for the public [Pontx Hub](https://pontx-hub.vercel.app) search API.
 
+**Pontx Hub:** [https://pontx-hub.vercel.app](https://pontx-hub.vercel.app) · [Agent Skill and CLI guide](https://pontx-hub.vercel.app/en/agent-skill)
+
 ## Usage
 
 ```bash

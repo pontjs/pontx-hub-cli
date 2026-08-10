@@ -1,6 +1,6 @@
 {
   "name": "@pontx/hub-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Search and inspect Pontx Hub APIs, endpoints, and schemas",
   "type": "module",
   "packageManager": "pnpm@10.14.0",
@@ -35,6 +35,7 @@
     "type": "git",
     "url": "git+https://github.com/pontjs/pontx-hub-cli.git"
   },
+  "homepage": "https://pontx-hub.vercel.app/en/agent-skill",
   "license": "MIT",
   "dependencies": {
     "commander": "^14.0.2"
