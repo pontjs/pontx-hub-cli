@@ -2,6 +2,7 @@ import type { HubOperationDetail, HubRequestInput } from "./types.js";
 
 export type RequestOptions = {
   param?: string[];
+  namedParam?: Record<string, unknown>;
   header?: string[];
   body?: string;
 };
@@ -24,11 +25,59 @@ function keyValues(values: string[] = []): Record<string, unknown> {
   );
 }
 
+export function parseNamedParameters(args: string[]): Record<string, unknown> {
+  const values: Record<string, unknown> = {};
+
+  for (let index = 0; index < args.length; index += 1) {
+    const argument = args[index]!;
+    if (!argument.startsWith("--") || argument.length === 2) {
+      throw new Error(`Expected --parameter value, received: ${argument}`);
+    }
+
+    const separator = argument.indexOf("=");
+    if (separator > 2) {
+      const name = argument.slice(2, separator);
+      values[name] = parseValue(argument.slice(separator + 1));
+      continue;
+    }
+
+    const name = argument.slice(2);
+    const next = args[index + 1];
+    if (next === undefined || next.startsWith("--")) {
+      values[name] = true;
+      continue;
+    }
+
+    values[name] = parseValue(next);
+    index += 1;
+  }
+
+  return values;
+}
+
 export function buildRequest(
   detail: HubOperationDetail,
   options: RequestOptions
 ): HubRequestInput {
-  const values = keyValues(options.param);
+  const namedValues = options.namedParam ?? {};
+  const parameterNames = new Set(
+    detail.operation.parameters.map((parameter) => parameter.name)
+  );
+  const unknownParameters = Object.keys(namedValues).filter(
+    (name) => !parameterNames.has(name)
+  );
+  if (unknownParameters.length > 0) {
+    const available = [...parameterNames].map((name) => `--${name}`).join(", ");
+    throw new Error(
+      `Unknown request parameter: ${unknownParameters.map((name) => `--${name}`).join(", ")}` +
+      (available ? `. Available parameters: ${available}` : ". This API has no named parameters.")
+    );
+  }
+
+  const values = {
+    ...keyValues(options.param),
+    ...namedValues
+  };
   const path: Record<string, unknown> = {};
   const query: Record<string, unknown> = {};
   const headers = Object.fromEntries(
@@ -72,7 +121,7 @@ export function buildRequest(
     path,
     query,
     headers,
-    ...(options.body ? { body: parseValue(options.body) } : {}),
+    ...(options.body !== undefined ? { body: parseValue(options.body) } : {}),
     ...(auth ? { auth } : {})
   };
 }

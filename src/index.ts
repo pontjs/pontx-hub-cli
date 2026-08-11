@@ -1,6 +1,10 @@
 export { DEFAULT_HUB_URL, HubClient, HubRequestError, resolveOperation } from "./client.js";
 export { formatSearch } from "./format.js";
-export { buildRequest, type RequestOptions } from "./request.js";
+export {
+  buildRequest,
+  parseNamedParameters,
+  type RequestOptions
+} from "./request.js";
 export type {
   ApiSearchResult,
   EndpointSearchResult,

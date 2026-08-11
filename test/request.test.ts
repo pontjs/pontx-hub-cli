@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { buildRequest } from "../src/request.js";
+import { buildRequest, parseNamedParameters } from "../src/request.js";
 import type { HubOperationDetail } from "../src/types.js";
 
 const detail: HubOperationDetail = {
@@ -40,7 +40,7 @@ describe("buildRequest", () => {
   it("partitions typed parameters and reads credentials only from the environment", () => {
     process.env.PONTX_HUB_CLI_TEST_TOKEN = "test-secret";
     const request = buildRequest(detail, {
-      param: ["taskId=task-1", "include=true"]
+      namedParam: { taskId: "task-1", include: true }
     });
     expect(request.path).toEqual({ taskId: "task-1" });
     expect(request.query).toEqual({ include: true });
@@ -48,6 +48,37 @@ describe("buildRequest", () => {
       type: "bearer",
       schemeId: "bearer",
       token: "test-secret"
+    });
+  });
+
+  it("parses API-named options and JSON-compatible values", () => {
+    expect(parseNamedParameters([
+      "--taskId",
+      "task-1",
+      "--include=true",
+      "--limit",
+      "-2",
+      "--verbose"
+    ])).toEqual({
+      taskId: "task-1",
+      include: true,
+      limit: -2,
+      verbose: true
+    });
+  });
+
+  it("rejects named options that are not declared by the API", () => {
+    expect(() => buildRequest(detail, {
+      namedParam: { taskId: "task-1", typo: "value" }
+    })).toThrow("Unknown request parameter: --typo");
+  });
+
+  it("keeps -p key=value as a compatibility fallback", () => {
+    expect(buildRequest(detail, {
+      param: ["taskId=task-1", "include=false"]
+    })).toMatchObject({
+      path: { taskId: "task-1" },
+      query: { include: false }
     });
   });
 });

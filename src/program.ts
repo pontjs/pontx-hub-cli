@@ -3,7 +3,11 @@ import { access, mkdir, writeFile } from "node:fs/promises";
 import { isAbsolute, resolve, sep } from "node:path";
 import { formatSearch } from "./format.js";
 import { HubClient } from "./client.js";
-import { buildRequest, type RequestOptions } from "./request.js";
+import {
+  buildRequest,
+  parseNamedParameters,
+  type RequestOptions
+} from "./request.js";
 import type { Locale, SearchKind } from "./types.js";
 
 function collect(value: string, previous: string[]): string[] {
@@ -26,9 +30,20 @@ function clientFor(program: Command): HubClient {
 
 function addRequestOptions(command: Command): Command {
   return command
-    .option("-p, --param <key=value>", "Request parameter; repeat to add more", collect, [])
+    .option("-p, --param <key=value>", "Compatibility form for request parameters; repeat to add more", collect, [])
     .option("-H, --header <header>", "Request header; repeat to add more", collect, [])
     .option("--body <json>", "JSON request body");
+}
+
+function withNamedParameters(
+  options: RequestOptions,
+  command: Command,
+  positionalCount: number
+): RequestOptions {
+  return {
+    ...options,
+    namedParam: parseNamedParameters(command.args.slice(positionalCount))
+  };
 }
 
 type CallOptions = RequestOptions & { yes?: boolean };
@@ -78,12 +93,15 @@ export function createProgram(): Command {
     .argument("[action]", "preview or call")
     .argument("[controller-or-api]", "Controller/tag, or API name when the collection has no controller")
     .argument("[api-name]", "API name when a controller is present")
+    .allowUnknownOption(true)
+    .allowExcessArguments(true)
     .action(async (
       api: string | undefined,
       action: string | undefined,
       controllerOrEndpoint: string | undefined,
       endpoint: string | undefined,
-      options: CallOptions
+      options: CallOptions,
+      command: Command
     ) => {
       if (!api && !action && !controllerOrEndpoint && !endpoint) {
         program.outputHelp();
@@ -96,16 +114,18 @@ export function createProgram(): Command {
       }
       const client = clientFor(program);
       const detail = await client.resolveEndpoint(api, controllerOrEndpoint, endpoint);
-      if (action === "preview") await previewEndpoint(client, detail, options);
-      else await callEndpoint(client, detail, options);
+      const requestOptions = withNamedParameters(options, command, endpoint ? 4 : 3);
+      if (action === "preview") await previewEndpoint(client, detail, requestOptions);
+      else await callEndpoint(client, detail, requestOptions);
     })
     .addHelpText("after", `
 Examples:
-  $ pontx-hub frankfurter call 'Exchange Rates' getLatestRates -p base=USD
-  $ pontx-hub frankfurter-v2 preview getRates -p base=USD
+  $ pontx-hub frankfurter call 'Exchange Rates' getLatestRates --base USD
+  $ pontx-hub frankfurter-v2 preview getRates --base USD
 
 Collections with controllers use: <collection> call <controller> <api-name>
-Collections without controllers use: <collection> call <api-name>`);
+Collections without controllers use: <collection> call <api-name>
+Pass API parameters by name, for example --projectId 123. Use -p key=value only as a compatibility fallback.`);
 
   program
     .command("list")
@@ -181,15 +201,18 @@ Collections without controllers use: <collection> call <api-name>`);
       .description("Build a redacted request preview without calling the provider")
       .argument("<api>", "API slug")
       .argument("<endpoint>", "Endpoint slug")
+      .allowUnknownOption(true)
+      .allowExcessArguments(true)
   ).action(
     async (
       api: string,
       endpoint: string,
-      options: RequestOptions
+      options: RequestOptions,
+      command: Command
     ) => {
       const client = clientFor(program);
       const detail = await client.endpoint(api, endpoint);
-      await previewEndpoint(client, detail, options);
+      await previewEndpoint(client, detail, withNamedParameters(options, command, 2));
     }
   );
 
@@ -200,15 +223,18 @@ Collections without controllers use: <collection> call <api-name>`);
       .argument("<api>", "API slug")
       .argument("<endpoint>", "Endpoint slug")
       .option("--yes", "Confirm the exact mutation shown by the preview")
+      .allowUnknownOption(true)
+      .allowExcessArguments(true)
   ).action(
     async (
       api: string,
       endpoint: string,
-      options: RequestOptions & { yes?: boolean }
+      options: RequestOptions & { yes?: boolean },
+      command: Command
     ) => {
       const client = clientFor(program);
       const detail = await client.endpoint(api, endpoint);
-      await callEndpoint(client, detail, options);
+      await callEndpoint(client, detail, withNamedParameters(options, command, 2));
     }
   );
 
