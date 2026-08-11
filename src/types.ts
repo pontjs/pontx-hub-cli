@@ -103,6 +103,34 @@ export type HubApiSummary = {
   operationCount: number;
   schemaCount: number;
   authTypes: string[];
+  quickStart?: {
+    operationSlug: string;
+    requestExampleId: string;
+  };
+};
+
+export type HubRequestExampleInput = {
+  in: "path" | "query" | "header" | "body";
+  name: string;
+  source:
+    | { kind: "operation"; operationId: string }
+    | { kind: "runtime"; reason: string };
+};
+
+export type HubRequestExample = {
+  id: string;
+  title: { zh: string; en: string };
+  request: {
+    serverId?: string;
+    path: Record<string, string | number | boolean>;
+    query: Record<string, string | number | boolean>;
+    headers: Record<string, string>;
+    body?: unknown;
+  };
+  expectedStatus: string;
+  verifiedAt?: string;
+  completeness: "ready" | "requires-input";
+  unresolved: HubRequestExampleInput[];
 };
 
 export type HubOperationSummary = {
@@ -111,10 +139,15 @@ export type HubOperationSummary = {
   tag: string;
   method: string;
   path: string;
+  requestExamples?: HubRequestExample[];
 };
 
 export type HubApiDetail = {
   slug: string;
+  quickStart?: {
+    operationSlug: string;
+    requestExampleId: string;
+  };
   operations: HubOperationSummary[];
 };
 
@@ -160,6 +193,7 @@ export type HubOperationDetail = {
       schemaName?: string;
       properties?: string[];
     }>;
+    requestExamples?: HubRequestExample[];
   };
 };
 

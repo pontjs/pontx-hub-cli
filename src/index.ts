@@ -13,6 +13,8 @@ export type {
   HubOperationDetail,
   HubOperationSummary,
   HubPreview,
+  HubRequestExample,
+  HubRequestExampleInput,
   HubRequestInput,
   HubSkillBundle,
   Locale,
