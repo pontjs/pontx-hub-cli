@@ -1,6 +1,6 @@
 {
   "name": "@pontx/hub-cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Search and inspect Pontx Hub APIs, endpoints, and schemas",
   "type": "module",
   "packageManager": "pnpm@10.14.0",
