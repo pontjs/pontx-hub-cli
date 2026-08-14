@@ -35,19 +35,65 @@ function clientFor(program: Command): HubClient {
 
 function addRequestOptions(command: Command): Command {
   return command
-    .option("-p, --param <key=value>", "Compatibility form for request parameters; repeat to add more", collect, [])
     .option("-H, --header <header>", "Request header; repeat to add more", collect, [])
     .option("--body <json>", "JSON request body");
 }
 
 function withNamedParameters(
   options: RequestOptions,
-  command: Command,
-  positionalCount: number
+  namedArguments: string[]
 ): RequestOptions {
   return {
     ...options,
-    namedParam: parseNamedParameters(command.args.slice(positionalCount))
+    namedParam: parseNamedParameters(namedArguments)
+  };
+}
+
+type DynamicRequestArguments = {
+  api: string;
+  action: "preview" | "call";
+  controllerOrEndpoint: string;
+  endpoint?: string;
+  namedArguments: string[];
+};
+
+export function parseDynamicRequestArguments(
+  args: string[]
+): DynamicRequestArguments {
+  const [api, action, ...requestArguments] = args;
+  if (!api || (action !== "preview" && action !== "call")) {
+    throw new Error(
+      "Use pontx-hub <api-collection> <preview|call> [controller] <api-name>"
+    );
+  }
+
+  const namedOptionIndex = requestArguments.findIndex((argument) =>
+    argument.startsWith("--")
+  );
+  const endpointArguments = namedOptionIndex < 0
+    ? requestArguments
+    : requestArguments.slice(0, namedOptionIndex);
+  const namedArguments = namedOptionIndex < 0
+    ? []
+    : requestArguments.slice(namedOptionIndex);
+
+  if (endpointArguments.includes("-p")) {
+    throw new Error(
+      "-p has been removed; pass API parameters as --parameter value"
+    );
+  }
+  if (endpointArguments.length < 1 || endpointArguments.length > 2) {
+    throw new Error(
+      "Use pontx-hub <api-collection> <preview|call> [controller] <api-name>"
+    );
+  }
+
+  return {
+    api,
+    action,
+    controllerOrEndpoint: endpointArguments[0]!,
+    ...(endpointArguments[1] ? { endpoint: endpointArguments[1] } : {}),
+    namedArguments
   };
 }
 
@@ -112,16 +158,22 @@ export function createProgram(): Command {
         program.outputHelp();
         return;
       }
-      if (!api || !controllerOrEndpoint || (action !== "preview" && action !== "call")) {
-        throw new Error(
-          "Use pontx-hub <api-collection> <preview|call> [controller] <api-name>"
-        );
-      }
+      const requestArguments = parseDynamicRequestArguments(command.args);
       const client = clientFor(program);
-      const detail = await client.resolveEndpoint(api, controllerOrEndpoint, endpoint);
-      const requestOptions = withNamedParameters(options, command, endpoint ? 4 : 3);
-      if (action === "preview") await previewEndpoint(client, detail, requestOptions);
-      else await callEndpoint(client, detail, requestOptions);
+      const detail = await client.resolveEndpoint(
+        requestArguments.api,
+        requestArguments.controllerOrEndpoint,
+        requestArguments.endpoint
+      );
+      const requestOptions = withNamedParameters(
+        options,
+        requestArguments.namedArguments
+      );
+      if (requestArguments.action === "preview") {
+        await previewEndpoint(client, detail, requestOptions);
+      } else {
+        await callEndpoint(client, detail, requestOptions);
+      }
     })
     .addHelpText("after", `
 Examples:
@@ -130,7 +182,7 @@ Examples:
 
 Collections with controllers use: <collection> call <controller> <api-name>
 Collections without controllers use: <collection> call <api-name>
-Pass API parameters by name, for example --projectId 123. Use -p key=value only as a compatibility fallback.`);
+Pass API parameters by name, for example --projectId 123.`);
 
   program
     .command("list")
@@ -217,7 +269,11 @@ Pass API parameters by name, for example --projectId 123. Use -p key=value only 
     ) => {
       const client = clientFor(program);
       const detail = await client.endpoint(api, endpoint);
-      await previewEndpoint(client, detail, withNamedParameters(options, command, 2));
+      await previewEndpoint(
+        client,
+        detail,
+        withNamedParameters(options, command.args.slice(2))
+      );
     }
   );
 
@@ -239,7 +295,11 @@ Pass API parameters by name, for example --projectId 123. Use -p key=value only 
     ) => {
       const client = clientFor(program);
       const detail = await client.endpoint(api, endpoint);
-      await callEndpoint(client, detail, withNamedParameters(options, command, 2));
+      await callEndpoint(
+        client,
+        detail,
+        withNamedParameters(options, command.args.slice(2))
+      );
     }
   );
 
