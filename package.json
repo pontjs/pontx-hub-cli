@@ -1,6 +1,6 @@
 {
   "name": "@pontx/hub-cli",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Discover public APIs, search OpenAPI endpoints and schemas, preview requests, and generate type-safe SDK integrations with Pontx Hub",
   "keywords": [
     "api-discovery",

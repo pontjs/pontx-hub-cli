@@ -14,8 +14,17 @@ function parseValue(value: string): unknown {
   }
 }
 
-export function parseNamedParameters(args: string[]): Record<string, unknown> {
+export function parseNamedParameters(
+  args: string[],
+  stringParameterNames = new Set<string>()
+): Record<string, unknown> {
   const values: Record<string, unknown> = {};
+
+  const parseParameterValue = (name: string, value: string): unknown =>
+    stringParameterNames.has(name) ||
+    (name === "path-version" && stringParameterNames.has("version"))
+      ? value
+      : parseValue(value);
 
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index]!;
@@ -26,7 +35,7 @@ export function parseNamedParameters(args: string[]): Record<string, unknown> {
     const separator = argument.indexOf("=");
     if (separator > 2) {
       const name = argument.slice(2, separator);
-      values[name] = parseValue(argument.slice(separator + 1));
+      values[name] = parseParameterValue(name, argument.slice(separator + 1));
       continue;
     }
 
@@ -37,7 +46,7 @@ export function parseNamedParameters(args: string[]): Record<string, unknown> {
       continue;
     }
 
-    values[name] = parseValue(next);
+    values[name] = parseParameterValue(name, next);
     index += 1;
   }
 
@@ -48,15 +57,30 @@ export function buildRequest(
   detail: HubOperationDetail,
   options: RequestOptions
 ): HubRequestInput {
-  const namedValues = options.namedParam ?? {};
   const parameterNames = new Set(
     detail.operation.parameters.map((parameter) => parameter.name)
+  );
+  const aliases = new Map(
+    parameterNames.has("version") ? [["path-version", "version"]] : []
+  );
+  const namedValues = Object.entries(options.namedParam ?? {}).reduce<Record<string, unknown>>(
+    (values, [name, value]) => {
+      const canonicalName = aliases.get(name) ?? name;
+      if (canonicalName in values) {
+        throw new Error(`Duplicate request parameter: --${canonicalName}`);
+      }
+      values[canonicalName] = value;
+      return values;
+    },
+    {}
   );
   const unknownParameters = Object.keys(namedValues).filter(
     (name) => !parameterNames.has(name)
   );
   if (unknownParameters.length > 0) {
-    const available = [...parameterNames].map((name) => `--${name}`).join(", ");
+    const available = [...parameterNames].map((name) =>
+      name === "version" ? "--path-version" : `--${name}`
+    ).join(", ");
     throw new Error(
       `Unknown request parameter: ${unknownParameters.map((name) => `--${name}`).join(", ")}` +
       (available ? `. Available parameters: ${available}` : ". This API has no named parameters.")

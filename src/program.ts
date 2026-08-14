@@ -41,11 +41,19 @@ function addRequestOptions(command: Command): Command {
 
 function withNamedParameters(
   options: RequestOptions,
-  namedArguments: string[]
+  namedArguments: string[],
+  detail: Awaited<ReturnType<HubClient["endpoint"]>>
 ): RequestOptions {
   return {
     ...options,
-    namedParam: parseNamedParameters(namedArguments)
+    namedParam: parseNamedParameters(
+      namedArguments,
+      new Set(
+        detail.operation.parameters
+          .filter((parameter) => parameter.type === "string")
+          .map((parameter) => parameter.name)
+      )
+    )
   };
 }
 
@@ -167,7 +175,8 @@ export function createProgram(): Command {
       );
       const requestOptions = withNamedParameters(
         options,
-        requestArguments.namedArguments
+        requestArguments.namedArguments,
+        detail
       );
       if (requestArguments.action === "preview") {
         await previewEndpoint(client, detail, requestOptions);
@@ -280,7 +289,7 @@ Pass API parameters by name, for example --projectId 123.`);
       await previewEndpoint(
         client,
         detail,
-        withNamedParameters(options, command.args.slice(2))
+        withNamedParameters(options, command.args.slice(2), detail)
       );
     }
   );
@@ -306,7 +315,7 @@ Pass API parameters by name, for example --projectId 123.`);
       await callEndpoint(
         client,
         detail,
-        withNamedParameters(options, command.args.slice(2))
+        withNamedParameters(options, command.args.slice(2), detail)
       );
     }
   );
