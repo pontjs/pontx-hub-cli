@@ -13,7 +13,7 @@ import type {
 } from "./types.js";
 
 export const DEFAULT_HUB_URL =
-  process.env.PONTX_HUB_URL || "https://pontx-hub.vercel.app";
+  process.env.PONTX_HUB_URL || "https://pontx.dev";
 
 function sameCommandName(left: string, right: string): boolean {
   return left.localeCompare(right, undefined, { sensitivity: "accent" }) === 0;

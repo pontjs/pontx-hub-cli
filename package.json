@@ -35,7 +35,7 @@
     "type": "git",
     "url": "git+https://github.com/pontjs/pontx-hub-cli.git"
   },
-  "homepage": "https://pontx-hub.vercel.app/en/agent-skill",
+  "homepage": "https://pontx.dev/en/agent-skill",
   "license": "MIT",
   "dependencies": {
     "commander": "^14.0.2"

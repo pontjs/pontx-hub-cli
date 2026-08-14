@@ -86,7 +86,7 @@ export function createProgram(): Command {
     .option(
       "--url <url>",
       "Pontx Hub base URL",
-      process.env.PONTX_HUB_URL || "https://pontx-hub.vercel.app"
+      process.env.PONTX_HUB_URL || "https://pontx.dev"
     ))
     .option("--yes", "Confirm the exact mutation shown by the preview")
     .argument("[api-collection]", "API collection slug")
