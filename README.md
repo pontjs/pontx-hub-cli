@@ -14,6 +14,7 @@ node dist/cli.js search "create a todo"
 node dist/cli.js search "返回 dueDate 的接口" --locale zh --json
 node dist/cli.js search projectId --type schema --locale en --json
 node dist/cli.js show schema:dida365/TaskCreate
+node dist/cli.js pricing massive
 node dist/cli.js frankfurter preview 'Exchange Rates' getLatestRates --base USD
 node dist/cli.js frankfurter call 'Exchange Rates' getLatestRates --base USD
 node dist/cli.js frankfurter-v2 call getRates --base USD

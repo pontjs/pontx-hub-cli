@@ -32,6 +32,7 @@ describe("createProgram", () => {
       "list",
       "search",
       "show",
+      "pricing",
       "preview",
       "call",
       "sdk",

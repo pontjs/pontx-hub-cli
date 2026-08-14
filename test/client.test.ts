@@ -72,4 +72,22 @@ describe("HubClient", () => {
       { headers: { Accept: "application/json" } }
     );
   });
+
+  it("reads reviewed pricing from the dedicated API contract", async () => {
+    const fetcher = vi.fn(async () => Response.json({
+      version: "v1",
+      data: {
+        status: "free",
+        summary: { zh: "免费", en: "Free" },
+        officialUrl: "https://example.com/pricing",
+        verifiedAt: "2026-08-14"
+      }
+    }));
+    const client = new HubClient("https://hub.example", fetcher);
+    await expect(client.pricing("rates")).resolves.toMatchObject({ status: "free" });
+    expect(fetcher).toHaveBeenCalledWith(
+      "https://hub.example/api/v1/specs/rates/pricing",
+      { headers: { Accept: "application/json" } }
+    );
+  });
 });
