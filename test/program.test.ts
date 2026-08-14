@@ -27,7 +27,7 @@ afterEach(() => {
 describe("createProgram", () => {
   it("registers the standalone Hub workflow", () => {
     const program = createProgram();
-    expect(program.version()).toBe("0.1.2");
+    expect(program.version()).toBe("0.1.3");
     expect(program.commands.map((command) => command.name())).toEqual([
       "list",
       "search",
@@ -102,6 +102,35 @@ describe("createProgram", () => {
     expect(resolveEndpoint).toHaveBeenCalledWith("tasks", "getTask", undefined);
     expect(preview).toHaveBeenCalledWith(expect.objectContaining({
       path: { taskId: "task-1" }
+    }));
+  });
+
+  it("keeps the CLI --version option available by accepting --path-version for API input", async () => {
+    const versionedDetail = {
+      ...detail,
+      operation: {
+        ...detail.operation,
+        parameters: [{ name: "version", in: "path", required: true, type: "string" }]
+      }
+    } as HubOperationDetail;
+    vi.spyOn(HubClient.prototype, "resolveEndpoint").mockResolvedValue(versionedDetail);
+    const preview = vi.spyOn(HubClient.prototype, "preview").mockResolvedValue({
+      method: "GET",
+      url: "https://example.com/versions/1.0",
+      headers: {},
+      requiresConfirmation: false,
+      proxyEnabled: true,
+      warnings: [],
+      curl: "curl https://example.com/versions/1.0"
+    });
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+
+    await createProgram().parseAsync([
+      "node", "pontx-hub", "versions", "preview", "getVersion", "--path-version", "1.0"
+    ]);
+
+    expect(preview).toHaveBeenCalledWith(expect.objectContaining({
+      path: { version: "1.0" }
     }));
   });
 

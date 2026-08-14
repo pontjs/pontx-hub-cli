@@ -73,4 +73,23 @@ describe("buildRequest", () => {
     })).toThrow("Unknown request parameter: --typo");
   });
 
+  it("maps the --path-version escape hatch to an OpenAPI version parameter", () => {
+    const versionedDetail: HubOperationDetail = {
+      ...detail,
+      operation: {
+        ...detail.operation,
+        parameters: [
+          { name: "version", in: "path", required: true, type: "string" }
+        ]
+      }
+    };
+    expect(buildRequest(versionedDetail, {
+      namedParam: { "path-version": "1.0" }
+    }).path).toEqual({ version: "1.0" });
+    expect(parseNamedParameters([
+      "--path-version",
+      "1.0"
+    ], new Set(["version"]))).toEqual({ "path-version": "1.0" });
+  });
+
 });
