@@ -1,8 +1,8 @@
 # Pontx Hub CLI
 
-Standalone CLI and TypeScript client for the public [Pontx Hub](https://pontx-hub.vercel.app) search API.
+Standalone CLI and TypeScript client for the public [Pontx Hub](https://pontx.dev) search API.
 
-**Pontx Hub:** [https://pontx-hub.vercel.app](https://pontx-hub.vercel.app) · [Agent Skill and CLI guide](https://pontx-hub.vercel.app/en/agent-skill)
+**Pontx Hub:** [https://pontx.dev](https://pontx.dev) · [Agent Skill and CLI guide](https://pontx.dev/en/agent-skill)
 
 ## Usage
 
