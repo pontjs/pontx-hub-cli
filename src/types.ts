@@ -8,6 +8,7 @@ export type SearchMatchField =
   | "parameter"
   | "request"
   | "response"
+  | "pricing"
   | "schema"
   | "property";
 
@@ -107,6 +108,7 @@ export type HubApiSummary = {
     operationSlug: string;
     requestExampleId: string;
   };
+  pricing?: HubPricing;
 };
 
 export type HubRequestExampleInput = {
@@ -133,6 +135,21 @@ export type HubRequestExample = {
   unresolved: HubRequestExampleInput[];
 };
 
+export type HubPricing = {
+  status: "free" | "freemium" | "paid" | "contact" | "unknown";
+  summary: { zh: string; en: string };
+  officialUrl?: string;
+  verifiedAt?: string;
+  currency?: string;
+  startingPrice?: {
+    amount: number;
+    currency: string;
+    unit: { zh: string; en: string };
+  };
+  freeTier?: { zh: string; en: string };
+  billingUnit?: { zh: string; en: string };
+};
+
 export type HubOperationSummary = {
   slug: string;
   operationId: string;
@@ -148,6 +165,7 @@ export type HubApiDetail = {
     operationSlug: string;
     requestExampleId: string;
   };
+  pricing?: HubPricing;
   operations: HubOperationSummary[];
 };
 

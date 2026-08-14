@@ -252,6 +252,14 @@ Pass API parameters by name, for example --projectId 123.`);
       printJson(await client.show(resourceId));
     });
 
+  program
+    .command("pricing")
+    .description("Show reviewed API pricing and its official source")
+    .argument("<api>", "API collection slug")
+    .action(async (api: string) => {
+      printJson(await clientFor(program).pricing(api));
+    });
+
   addRequestOptions(
     program
       .command("preview", { hidden: true })

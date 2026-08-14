@@ -6,6 +6,7 @@ import type {
   HubOperationDetail,
   HubOperationSummary,
   HubPreview,
+  HubPricing,
   HubRequestInput,
   HubSkillBundle,
   SearchOptions,
@@ -141,6 +142,10 @@ export class HubClient {
 
   sdk(apiSlug: string): Promise<unknown> {
     return this.request(`/api/v1/specs/${encodeURIComponent(apiSlug)}/sdk`);
+  }
+
+  pricing(apiSlug: string): Promise<HubPricing> {
+    return this.request(`/api/v1/specs/${encodeURIComponent(apiSlug)}/pricing`);
   }
 
   skill(): Promise<HubSkillBundle> {
