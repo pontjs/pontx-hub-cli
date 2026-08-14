@@ -1,7 +1,15 @@
 {
   "name": "@pontx/hub-cli",
   "version": "0.1.2",
-  "description": "Search and inspect Pontx Hub APIs, endpoints, and schemas",
+  "description": "Discover public APIs, search OpenAPI endpoints and schemas, preview requests, and generate type-safe SDK integrations with Pontx Hub",
+  "keywords": [
+    "api-discovery",
+    "agent-skill",
+    "openapi",
+    "api-cli",
+    "schema",
+    "typescript-sdk"
+  ],
   "type": "module",
   "packageManager": "pnpm@10.14.0",
   "engines": {
@@ -35,7 +43,10 @@
     "type": "git",
     "url": "git+https://github.com/pontjs/pontx-hub-cli.git"
   },
-  "homepage": "https://pontx.dev/en/agent-skill",
+  "homepage": "https://pontx.dev/en/skills/pontx-hub",
+  "bugs": {
+    "url": "https://github.com/pontjs/pontx-hub-cli/issues"
+  },
   "license": "MIT",
   "dependencies": {
     "commander": "^14.0.2"

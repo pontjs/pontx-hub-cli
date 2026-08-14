@@ -2,7 +2,7 @@
 
 Standalone CLI and TypeScript client for the public [Pontx Hub](https://pontx.dev) search API.
 
-**Pontx Hub:** [https://pontx.dev](https://pontx.dev) · [Agent Skill and CLI guide](https://pontx.dev/en/agent-skill)
+**Pontx Hub:** [https://pontx.dev](https://pontx.dev) · [Agent Skill and CLI guide](https://pontx.dev/en/skills/pontx-hub)
 
 ## Usage
 
