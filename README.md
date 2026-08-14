@@ -33,8 +33,7 @@ existing scripts.
 
 Pass OpenAPI path, query, and declared header parameters as named options such
 as `--projectId 123` or `--includeCompleted true`. Use `--body '<json>'` for a
-request body and `-H 'Header: value'` for an extra raw header. The repeated
-`-p key=value` form remains available as a compatibility fallback.
+request body and `-H 'Header: value'` for an extra raw header.
 
 ## TypeScript client
 

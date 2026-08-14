@@ -73,8 +73,10 @@ describe("createProgram", () => {
     }));
   });
 
-  it("retains the repeated -p compatibility form", async () => {
-    vi.spyOn(HubClient.prototype, "resolveEndpoint").mockResolvedValue(detail);
+  it("parses named options after an API name without a controller", async () => {
+    const resolveEndpoint = vi
+      .spyOn(HubClient.prototype, "resolveEndpoint")
+      .mockResolvedValue(detail);
     const preview = vi.spyOn(HubClient.prototype, "preview").mockResolvedValue({
       method: "GET",
       url: "https://example.com/tasks/task-1",
@@ -91,14 +93,30 @@ describe("createProgram", () => {
       "pontx-hub",
       "tasks",
       "preview",
-      "task",
       "getTask",
-      "-p",
-      "taskId=task-1"
+      "--taskId",
+      "task-1"
     ]);
 
+    expect(resolveEndpoint).toHaveBeenCalledWith("tasks", "getTask", undefined);
     expect(preview).toHaveBeenCalledWith(expect.objectContaining({
       path: { taskId: "task-1" }
     }));
+  });
+
+  it("rejects the removed -p compatibility syntax", async () => {
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+
+    await expect(createProgram().parseAsync([
+      "node",
+      "pontx-hub",
+      "tasks",
+      "preview",
+      "getTask",
+      "-p",
+      "taskId=task-1"
+    ])).rejects.toThrow(
+      "-p has been removed; pass API parameters as --parameter value"
+    );
   });
 });

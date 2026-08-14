@@ -73,12 +73,4 @@ describe("buildRequest", () => {
     })).toThrow("Unknown request parameter: --typo");
   });
 
-  it("keeps -p key=value as a compatibility fallback", () => {
-    expect(buildRequest(detail, {
-      param: ["taskId=task-1", "include=false"]
-    })).toMatchObject({
-      path: { taskId: "task-1" },
-      query: { include: false }
-    });
-  });
 });

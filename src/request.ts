@@ -1,7 +1,6 @@
 import type { HubOperationDetail, HubRequestInput } from "./types.js";
 
 export type RequestOptions = {
-  param?: string[];
   namedParam?: Record<string, unknown>;
   header?: string[];
   body?: string;
@@ -13,16 +12,6 @@ function parseValue(value: string): unknown {
   } catch {
     return value;
   }
-}
-
-function keyValues(values: string[] = []): Record<string, unknown> {
-  return Object.fromEntries(
-    values.map((item) => {
-      const separator = item.indexOf("=");
-      if (separator < 1) throw new Error(`Expected key=value, received: ${item}`);
-      return [item.slice(0, separator), parseValue(item.slice(separator + 1))];
-    })
-  );
 }
 
 export function parseNamedParameters(args: string[]): Record<string, unknown> {
@@ -74,10 +63,7 @@ export function buildRequest(
     );
   }
 
-  const values = {
-    ...keyValues(options.param),
-    ...namedValues
-  };
+  const values = namedValues;
   const path: Record<string, unknown> = {};
   const query: Record<string, unknown> = {};
   const headers = Object.fromEntries(
