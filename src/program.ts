@@ -1,5 +1,6 @@
 import { Command, Option } from "commander";
 import { access, mkdir, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { isAbsolute, resolve, sep } from "node:path";
 import { formatSearch } from "./format.js";
 import { HubClient } from "./client.js";
@@ -9,6 +10,10 @@ import {
   type RequestOptions
 } from "./request.js";
 import type { Locale, SearchKind } from "./types.js";
+
+const { version: PACKAGE_VERSION } = createRequire(import.meta.url)("../package.json") as {
+  version: string;
+};
 
 function collect(value: string, previous: string[]): string[] {
   return previous.concat(value);
@@ -80,8 +85,8 @@ async function callEndpoint(
 export function createProgram(): Command {
   const program = addRequestOptions(new Command()
     .name("pontx-hub")
-    .description("Search and inspect APIs across Pontx Hub")
-    .version("0.1.1")
+    .description("Discover public APIs and inspect OpenAPI Endpoints and Schemas across Pontx Hub")
+    .version(PACKAGE_VERSION)
     .usage("[options] <api-collection> <preview|call> [controller] <api-name>")
     .option(
       "--url <url>",
