@@ -9,6 +9,8 @@ import type {
   HubPricing,
   HubRequestInput,
   HubSkillBundle,
+  HubPublishedSkillBundle,
+  HubSkillSummary,
   SearchOptions,
   SearchResponse
 } from "./types.js";
@@ -150,6 +152,16 @@ export class HubClient {
 
   skill(): Promise<HubSkillBundle> {
     return this.request<HubSkillBundle>("/api/v1/skill");
+  }
+
+  listSkills(): Promise<HubSkillSummary[]> {
+    return this.request<HubSkillSummary[]>("/api/v1/skills");
+  }
+
+  getSkill(name: string): Promise<HubPublishedSkillBundle> {
+    return this.request<HubPublishedSkillBundle>(
+      `/api/v1/skills/${encodeURIComponent(name)}`
+    );
   }
 
   preview(input: HubRequestInput): Promise<HubPreview> {

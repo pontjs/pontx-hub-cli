@@ -1,7 +1,22 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createProgram } from "../src/program.js";
 import { HubClient } from "../src/client.js";
-import type { HubOperationDetail } from "../src/types.js";
+import type {
+  HubOperationDetail,
+  HubPublishedSkillBundle,
+  HubSkillSummary
+} from "../src/types.js";
 
 const detail = {
   api: {
@@ -20,6 +35,25 @@ const detail = {
   }
 } as HubOperationDetail;
 
+const productSkill: HubPublishedSkillBundle = {
+  name: "pontx-tasks",
+  apiSlug: "tasks",
+  version: "1.0.0",
+  description: "Task integration workflows",
+  license: "MIT-0",
+  contentHash: "fca25eae51bbd9011a389b0f107cda1fe14ce99c493c6d29889e8aef4604028f",
+  files: [{
+    path: "SKILL.md",
+    sha256: "8c78633697597050ade157306c7ffe98c2446b6dc1163ee569124ee0296e304c",
+    content: "# Tasks\n"
+  }]
+};
+
+const productSkillSummary: HubSkillSummary = {
+  ...productSkill,
+  files: productSkill.files.map(({ path, sha256 }) => ({ path, sha256 }))
+};
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
@@ -27,7 +61,7 @@ afterEach(() => {
 describe("createProgram", () => {
   it("registers the standalone Hub workflow", () => {
     const program = createProgram();
-    expect(program.version()).toBe("0.1.3");
+    expect(program.version()).toBe("0.2.0");
     expect(program.commands.map((command) => command.name())).toEqual([
       "list",
       "search",
@@ -148,5 +182,143 @@ describe("createProgram", () => {
     ])).rejects.toThrow(
       "-p has been removed; pass API parameters as --parameter value"
     );
+  });
+
+  it("lists universal and product Skills", async () => {
+    vi.spyOn(HubClient.prototype, "listSkills").mockResolvedValue([
+      {
+        ...productSkillSummary,
+        name: "pontx-hub",
+        apiSlug: undefined,
+        description: "Universal API discovery"
+      },
+      productSkillSummary
+    ]);
+    const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+
+    await createProgram().parseAsync(["node", "pontx-hub", "skill", "list"]);
+
+    expect(write).toHaveBeenCalledWith(expect.stringContaining("pontx-hub"));
+    expect(write).toHaveBeenCalledWith(expect.stringContaining("pontx-tasks"));
+  });
+
+  it("prints a machine-readable Skill summary list", async () => {
+    vi.spyOn(HubClient.prototype, "listSkills").mockResolvedValue([productSkillSummary]);
+    const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+
+    await createProgram().parseAsync([
+      "node", "pontx-hub", "skill", "list", "--json"
+    ]);
+
+    const output = String(write.mock.calls[0]?.[0]);
+    expect(JSON.parse(output)).toEqual([productSkillSummary]);
+  });
+
+  it("keeps no-argument install mapped to the universal pontx-hub Skill", async () => {
+    const temporary = await mkdtemp(join(tmpdir(), "pontx-hub-cli-"));
+    const output = join(temporary, "pontx-hub");
+    const universal = { ...productSkill, name: "pontx-hub", apiSlug: undefined };
+    const listSkills = vi.spyOn(HubClient.prototype, "listSkills");
+    const getSkill = vi.spyOn(HubClient.prototype, "getSkill").mockResolvedValue(universal);
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+
+    try {
+      await createProgram().parseAsync([
+        "node", "pontx-hub", "skill", "install", "--output", output
+      ]);
+
+      expect(listSkills).not.toHaveBeenCalled();
+      expect(getSkill).toHaveBeenCalledWith("pontx-hub");
+      await expect(readFile(join(output, "SKILL.md"), "utf8")).resolves.toBe("# Tasks\n");
+    } finally {
+      await rm(temporary, { recursive: true, force: true });
+    }
+  });
+
+  it("resolves a product API slug and installs its verified Skill bundle", async () => {
+    const temporary = await mkdtemp(join(tmpdir(), "pontx-hub-cli-"));
+    const output = join(temporary, "pontx-tasks");
+    vi.spyOn(HubClient.prototype, "listSkills").mockResolvedValue([productSkillSummary]);
+    const getSkill = vi.spyOn(HubClient.prototype, "getSkill").mockResolvedValue(productSkill);
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+
+    try {
+      await createProgram().parseAsync([
+        "node", "pontx-hub", "skill", "install", "tasks", "--output", output
+      ]);
+
+      expect(getSkill).toHaveBeenCalledWith("pontx-tasks");
+      await expect(readFile(join(output, "SKILL.md"), "utf8")).resolves.toBe("# Tasks\n");
+    } finally {
+      await rm(temporary, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a corrupted bundle before creating the installation directory", async () => {
+    const temporary = await mkdtemp(join(tmpdir(), "pontx-hub-cli-"));
+    const output = join(temporary, "pontx-tasks");
+    vi.spyOn(HubClient.prototype, "getSkill").mockResolvedValue({
+      ...productSkill,
+      files: [{ ...productSkill.files[0]!, content: "tampered\n" }]
+    });
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+
+    try {
+      await expect(createProgram().parseAsync([
+        "node", "pontx-hub", "skill", "install", "--output", output
+      ])).rejects.toThrow("Skill file hash mismatch: SKILL.md");
+      await expect(access(output)).rejects.toMatchObject({ code: "ENOENT" });
+    } finally {
+      await rm(temporary, { recursive: true, force: true });
+    }
+  });
+
+  it("requires --force before updating an existing Skill directory", async () => {
+    const temporary = await mkdtemp(join(tmpdir(), "pontx-hub-cli-"));
+    const output = join(temporary, "pontx-tasks");
+    await mkdir(output);
+    await writeFile(join(output, "SKILL.md"), "old\n");
+    vi.spyOn(HubClient.prototype, "getSkill").mockResolvedValue({
+      ...productSkill,
+      name: "pontx-hub"
+    });
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+
+    try {
+      await expect(createProgram().parseAsync([
+        "node", "pontx-hub", "skill", "install", "--output", output
+      ])).rejects.toThrow(`Skill directory already exists: ${output}`);
+      await expect(readFile(join(output, "SKILL.md"), "utf8")).resolves.toBe("old\n");
+
+      await createProgram().parseAsync([
+        "node", "pontx-hub", "skill", "install", "--output", output, "--force"
+      ]);
+      await expect(readFile(join(output, "SKILL.md"), "utf8")).resolves.toBe("# Tasks\n");
+    } finally {
+      await rm(temporary, { recursive: true, force: true });
+    }
+  });
+
+  it("does not follow an existing Skill file symlink when --force is used", async () => {
+    const temporary = await mkdtemp(join(tmpdir(), "pontx-hub-cli-"));
+    const output = join(temporary, "pontx-tasks");
+    const outside = join(temporary, "outside.md");
+    await mkdir(output);
+    await writeFile(outside, "outside\n");
+    await symlink(outside, join(output, "SKILL.md"));
+    vi.spyOn(HubClient.prototype, "getSkill").mockResolvedValue({
+      ...productSkill,
+      name: "pontx-hub"
+    });
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+
+    try {
+      await expect(createProgram().parseAsync([
+        "node", "pontx-hub", "skill", "install", "--output", output, "--force"
+      ])).rejects.toThrow("Unsafe Skill installation path contains a symbolic link");
+      await expect(readFile(outside, "utf8")).resolves.toBe("outside\n");
+    } finally {
+      await rm(temporary, { recursive: true, force: true });
+    }
   });
 });

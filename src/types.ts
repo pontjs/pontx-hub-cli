@@ -246,8 +246,31 @@ export type HubPreview = {
   warnings: string[];
 };
 
+/** Legacy bundle returned by GET /api/v1/skill. */
 export type HubSkillBundle = {
   name: string;
   version: string;
   files: Record<string, string>;
+};
+
+export type HubSkillFile = {
+  path: string;
+  sha256: string;
+  content: string;
+};
+
+export type HubSkillFileSummary = Omit<HubSkillFile, "content">;
+
+export type HubPublishedSkillBundle = {
+  name: string;
+  apiSlug?: string;
+  version: string;
+  description: string;
+  license: string;
+  contentHash: string;
+  files: HubSkillFile[];
+};
+
+export type HubSkillSummary = Omit<HubPublishedSkillBundle, "files"> & {
+  files: HubSkillFileSummary[];
 };

@@ -90,4 +90,53 @@ describe("HubClient", () => {
       { headers: { Accept: "application/json" } }
     );
   });
+
+  it("lists published Agent Skills from the versioned Hub API", async () => {
+    const fetcher = vi.fn(async () => Response.json({ version: "v1", data: [] }));
+    const client = new HubClient("https://hub.example", fetcher);
+
+    await expect(client.listSkills()).resolves.toEqual([]);
+    expect(fetcher).toHaveBeenCalledWith(
+      "https://hub.example/api/v1/skills",
+      { headers: { Accept: "application/json" } }
+    );
+  });
+
+  it("gets an installable Skill bundle by its encoded name", async () => {
+    const fetcher = vi.fn(async () => Response.json({
+      version: "v1",
+      data: {
+        name: "pontx-demo/api",
+        apiSlug: "demo",
+        version: "1.0.0",
+        description: "Demo",
+        license: "MIT-0",
+        contentHash: "0".repeat(64),
+        files: []
+      }
+    }));
+    const client = new HubClient("https://hub.example", fetcher);
+
+    await expect(client.getSkill("pontx-demo/api")).resolves.toMatchObject({
+      name: "pontx-demo/api"
+    });
+    expect(fetcher).toHaveBeenCalledWith(
+      "https://hub.example/api/v1/skills/pontx-demo%2Fapi",
+      { headers: { Accept: "application/json" } }
+    );
+  });
+
+  it("keeps the legacy universal Skill API available", async () => {
+    const fetcher = vi.fn(async () => Response.json({
+      version: "v1",
+      data: { name: "pontx-hub", version: "0.3.0", files: {} }
+    }));
+    const client = new HubClient("https://hub.example", fetcher);
+
+    await client.skill();
+    expect(fetcher).toHaveBeenCalledWith(
+      "https://hub.example/api/v1/skill",
+      { headers: { Accept: "application/json" } }
+    );
+  });
 });

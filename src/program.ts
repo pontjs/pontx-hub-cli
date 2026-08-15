@@ -1,7 +1,7 @@
 import { Command, Option } from "commander";
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { isAbsolute, resolve, sep } from "node:path";
+import { resolve } from "node:path";
 import { formatSearch } from "./format.js";
 import { HubClient } from "./client.js";
 import {
@@ -9,6 +9,11 @@ import {
   parseNamedParameters,
   type RequestOptions
 } from "./request.js";
+import {
+  assertNoSkillPathSymlinks,
+  assertSkillBundleIntegrity,
+  resolveSkillFilePath
+} from "./skill.js";
 import type { Locale, SearchKind } from "./types.js";
 
 const { version: PACKAGE_VERSION } = createRequire(import.meta.url)("../package.json") as {
@@ -328,17 +333,62 @@ Pass API parameters by name, for example --projectId 123.`);
 
   program
     .command("skill")
-    .description("Install the universal Pontx Hub Agent Skill")
-    .argument("[action]", "install", "install")
-    .option("--output <directory>", "Skill installation directory", ".agents/skills/pontx-hub")
+    .description("List or install Pontx Agent Skills")
+    .argument("[action]", "list or install", "install")
+    .argument("[skill]", "API slug or Skill name; defaults to pontx-hub")
+    .option("--output <directory>", "Skill installation directory")
     .option("--force", "Overwrite an existing Skill directory")
+    .option("--json", "Print the Skill list as JSON")
     .action(
       async (
         action: string,
-        options: { output: string; force?: boolean }
+        skill: string | undefined,
+        options: { output?: string; force?: boolean; json?: boolean }
       ) => {
-        if (action !== "install") throw new Error(`Unsupported skill action: ${action}`);
-        const target = resolve(process.cwd(), options.output);
+        const client = clientFor(program);
+        if (action === "list") {
+          if (skill) throw new Error("skill list does not accept a Skill name");
+          const skills = await client.listSkills();
+          if (options.json) return printJson(skills);
+          for (const item of skills) {
+            process.stdout.write(
+              `${item.name.padEnd(28)} ${(item.apiSlug ?? "all APIs").padEnd(20)} ${item.version} · ${item.description}\n`
+            );
+          }
+          return;
+        }
+        if (action !== "install") {
+          throw new Error(`Unsupported skill action: ${action}`);
+        }
+
+        let skillName = "pontx-hub";
+        if (skill) {
+          const skills = await client.listSkills();
+          const selected = skills.find(
+            (item) => item.name === skill || item.apiSlug === skill
+          );
+          if (!selected) {
+            throw new Error(`Skill not found: ${skill}`);
+          }
+          skillName = selected.name;
+        }
+
+        const bundle = await client.getSkill(skillName);
+        assertSkillBundleIntegrity(bundle);
+        if (bundle.name !== skillName) {
+          throw new Error(
+            `Unexpected Skill bundle: requested ${skillName}, received ${bundle.name}`
+          );
+        }
+        const target = resolve(
+          process.cwd(),
+          options.output ?? `.agents/skills/${bundle.name}`
+        );
+        const files = bundle.files.map((file) => ({
+          content: file.content,
+          destination: resolveSkillFilePath(target, file.path)
+        }));
+
         if (!options.force) {
           try {
             await access(target);
@@ -349,15 +399,11 @@ Pass API parameters by name, for example --projectId 123.`);
             }
           }
         }
-        const bundle = await clientFor(program).skill();
-        for (const [name, content] of Object.entries(bundle.files)) {
-          if (isAbsolute(name) || name.split(/[\\/]/).includes("..")) {
-            throw new Error(`Unsafe skill file path: ${name}`);
-          }
-          const destination = resolve(target, name);
-          if (destination !== target && !destination.startsWith(`${target}${sep}`)) {
-            throw new Error(`Unsafe skill file path: ${name}`);
-          }
+        await assertNoSkillPathSymlinks(
+          target,
+          files.map((file) => file.destination)
+        );
+        for (const { content, destination } of files) {
           await mkdir(resolve(destination, ".."), { recursive: true });
           await writeFile(destination, content, "utf8");
         }
