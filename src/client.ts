@@ -1,13 +1,20 @@
 import type {
   HubEnvelope,
   HubErrorEnvelope,
+  HubEndpointMetadata,
   HubApiDetail,
   HubApiSummary,
+  HubFullProductMetadata,
+  Locale,
+  HubMetadataEnvelope,
   HubOperationDetail,
   HubOperationSummary,
   HubPreview,
   HubPricing,
+  HubProductMetadata,
+  HubProductSummary,
   HubRequestInput,
+  HubSchemaMetadata,
   HubSkillBundle,
   HubPublishedSkillBundle,
   HubSkillSummary,
@@ -101,8 +108,69 @@ export class HubClient {
     return payload.data;
   }
 
+  private async requestMetadata<T>(path: string): Promise<HubMetadataEnvelope<T>> {
+    const response = await this.fetcher(`${this.baseUrl}${path}`, {
+      headers: { Accept: "application/json" }
+    });
+    const payload = (await response.json()) as HubMetadataEnvelope<T> | HubErrorEnvelope;
+    if (!response.ok || "error" in payload) {
+      const error =
+        "error" in payload
+          ? payload.error
+          : {
+              code: "request_failed",
+              message: `Hub request failed (${response.status})`,
+              requestId: undefined
+            };
+      throw new HubRequestError(
+        error.message,
+        response.status,
+        error.code,
+        error.requestId
+      );
+    }
+    return payload;
+  }
+
   list(): Promise<HubApiSummary[]> {
     return this.request("/api/v1/catalog");
+  }
+
+  listProducts(): Promise<HubMetadataEnvelope<HubProductSummary[]>> {
+    return this.requestMetadata("/api/v2/products");
+  }
+
+  product(apiSlug: string): Promise<HubMetadataEnvelope<HubProductMetadata>> {
+    return this.requestMetadata(`/api/v2/products/${encodeURIComponent(apiSlug)}`);
+  }
+
+  endpointMetadata(
+    apiSlug: string,
+    endpointSlug: string,
+    locale: Locale = "en"
+  ): Promise<HubMetadataEnvelope<HubEndpointMetadata>> {
+    return this.requestMetadata(
+      `/api/v2/products/${encodeURIComponent(apiSlug)}/endpoints/${encodeURIComponent(endpointSlug)}?locale=${locale}`
+    );
+  }
+
+  schemaMetadata(
+    apiSlug: string,
+    schemaName: string,
+    locale: Locale = "en"
+  ): Promise<HubMetadataEnvelope<HubSchemaMetadata>> {
+    return this.requestMetadata(
+      `/api/v2/products/${encodeURIComponent(apiSlug)}/schemas/${encodeURIComponent(schemaName)}?locale=${locale}`
+    );
+  }
+
+  productMetadata(
+    apiSlug: string,
+    locale: Locale = "en"
+  ): Promise<HubMetadataEnvelope<HubFullProductMetadata>> {
+    return this.requestMetadata(
+      `/api/v2/products/${encodeURIComponent(apiSlug)}/metadata?locale=${locale}`
+    );
   }
 
   search(query: string, options: SearchOptions = {}): Promise<SearchResponse> {

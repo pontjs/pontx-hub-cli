@@ -1,6 +1,6 @@
 {
   "name": "@pontx/hub-cli",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Discover public APIs, search OpenAPI endpoints and schemas, preview requests, and generate type-safe SDK integrations with Pontx Hub",
   "keywords": [
     "api-discovery",
@@ -36,8 +36,12 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
+    "verify:contract": "node scripts/verify-contract.mjs",
+    "test:e2e": "pnpm build && node scripts/e2e.mjs",
+    "quality": "pnpm verify:contract && pnpm typecheck && pnpm test && pnpm test:e2e",
     "dev": "tsx src/cli.ts",
-    "prepack": "pnpm build"
+    "prepack": "pnpm build",
+    "prepublishOnly": "pnpm quality"
   },
   "repository": {
     "type": "git",
