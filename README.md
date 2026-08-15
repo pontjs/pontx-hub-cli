@@ -65,11 +65,24 @@ const skills = await hub.listSkills();
 const dida365Skill = await hub.getSkill(
   skills.find((skill) => skill.apiSlug === "dida365")!.name
 );
+
+const products = await hub.listProducts();
+const hubApi = await hub.product("hub-cli");
+const listProducts = await hub.endpointMetadata(
+  "hub-cli",
+  "list-products",
+  "en"
+);
 ```
 
 `HubClient.skill()` and `GET /api/v1/skill` remain available for consumers of
 the legacy universal-Skill bundle. New integrations should use `listSkills()`
 and `getSkill(name)`, whose bundles include immutable content hashes.
+
+Use `listProducts()`, `product(slug)`, `endpointMetadata(slug, endpointSlug)`,
+`schemaMetadata(slug, schemaName)`, and `productMetadata(slug)` for the
+localized v2 catalog. Each response includes `metadataRevision`, which should
+be kept with any cached or indexed metadata snapshot.
 
 Set `PONTX_HUB_URL` or pass `--url` to use another Hub deployment.
 

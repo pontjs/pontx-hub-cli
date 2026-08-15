@@ -1,0 +1,9 @@
+{
+  "formatVersion": 1,
+  "metadata": {
+    "repository": "https://github.com/pontjs/pontx-api-metadata",
+    "commit": "ffb081474c8f31d4ed0d73c8b5006848e7393403",
+    "specPath": "products/hub-cli/spec.pontx.json",
+    "sha256": "be46b33d8404c2277481960169509691c2e3e72cfa8932ae4f278867cb122138"
+  }
+}

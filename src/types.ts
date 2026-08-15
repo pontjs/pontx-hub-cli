@@ -83,6 +83,88 @@ export type HubEnvelope<T> = {
   data: T;
 };
 
+/** Versioned v2 metadata response returned by the Hub product catalog. */
+export type HubMetadataEnvelope<T> = {
+  version: "v2";
+  metadataRevision: string;
+  data: T;
+};
+
+export type HubLocalizedText = { zh: string; en: string };
+
+export type HubProductSdk = {
+  packageName: string;
+  sdkVersion: string;
+  sdkStatus: "planned" | "published";
+  cliName?: string;
+};
+
+/** Compact product entry returned by `HubClient.listProducts()`. */
+export type HubProductSummary = {
+  id: string;
+  slug: string;
+  name: string;
+  provider: string;
+  category: string;
+  featured: boolean;
+  attributionUrl?: string;
+  title: HubLocalizedText;
+  summary: HubLocalizedText;
+  endpointCount: number;
+  schemaCount: number;
+  defaultEndpointSlug?: string;
+  authTypes: Array<"apiKey" | "bearer" | "oauth2" | "basic">;
+  sdk: HubProductSdk;
+};
+
+export type HubEndpointSummary = {
+  id: string;
+  slug: string;
+  operationId: string;
+  style: "RESTFul" | "RPC" | "GraphQL" | "AsyncAPI";
+  tag: string;
+  method?: string;
+  path?: string;
+  title: HubLocalizedText;
+  deprecated?: boolean;
+  proxyEnabled?: boolean;
+  proxyDisabledReason?: string;
+};
+
+export type HubSchemaSummary = {
+  id: string;
+  name: string;
+  title: HubLocalizedText;
+  type: "string" | "number" | "integer" | "boolean" | "object" | "array";
+  propertyCount: number;
+};
+
+/** Product overview and lightweight Endpoint and Schema directory. */
+export type HubProductMetadata = HubProductSummary & {
+  endpoints: HubEndpointSummary[];
+  schemas: HubSchemaSummary[];
+};
+
+export type HubEndpointMetadata = {
+  locale: Locale;
+  product: HubProductSummary;
+  endpoint: HubEndpointSummary & Record<string, unknown>;
+  pontxSpec: Record<string, unknown>;
+};
+
+export type HubSchemaMetadata = {
+  locale: Locale;
+  product: HubProductSummary;
+  schema: HubSchemaSummary & Record<string, unknown>;
+  pontxSpec: Record<string, unknown>;
+};
+
+export type HubFullProductMetadata = {
+  locale: Locale;
+  product: HubProductMetadata & Record<string, unknown>;
+  pontxSpec: Record<string, unknown>;
+};
+
 export type HubErrorEnvelope = {
   error: {
     code: string;

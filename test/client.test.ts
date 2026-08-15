@@ -31,6 +31,31 @@ describe("HubClient", () => {
     );
   });
 
+  it("reads every layered v2 product metadata resource with an immutable revision", async () => {
+    const fetcher = vi.fn(async () => Response.json({
+      version: "v2",
+      metadataRevision: "a".repeat(40),
+      data: { slug: "hub-cli" }
+    }));
+    const client = new HubClient("https://hub.example", fetcher);
+
+    await expect(client.listProducts()).resolves.toMatchObject({
+      metadataRevision: "a".repeat(40)
+    });
+    await client.product("hub-cli");
+    await client.endpointMetadata("hub-cli", "list-products", "zh");
+    await client.schemaMetadata("hub-cli", "Product Summary");
+    await client.productMetadata("hub-cli", "zh");
+
+    expect(fetcher.mock.calls.map(([url]) => url)).toEqual([
+      "https://hub.example/api/v2/products",
+      "https://hub.example/api/v2/products/hub-cli",
+      "https://hub.example/api/v2/products/hub-cli/endpoints/list-products?locale=zh",
+      "https://hub.example/api/v2/products/hub-cli/schemas/Product%20Summary?locale=en",
+      "https://hub.example/api/v2/products/hub-cli/metadata?locale=zh"
+    ]);
+  });
+
   it("resolves a controller and API name to the stable endpoint slug", () => {
     expect(resolveOperation({
       slug: "dida365",

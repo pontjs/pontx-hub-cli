@@ -61,7 +61,7 @@ afterEach(() => {
 describe("createProgram", () => {
   it("registers the standalone Hub workflow", () => {
     const program = createProgram();
-    expect(program.version()).toBe("0.2.0");
+    expect(program.version()).toBe("0.2.1");
     expect(program.commands.map((command) => command.name())).toEqual([
       "list",
       "search",
